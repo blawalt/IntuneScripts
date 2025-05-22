@@ -1,4 +1,4 @@
-﻿# PowerShell script to get user's Intune devices and create an Entra ID device group
+# PowerShell script to get user's Intune devices and add them to an existing Entra ID device group
 
 # Import required modules
 Import-Module Microsoft.Graph.Authentication
@@ -14,11 +14,16 @@ Connect-MgGraph -Scopes "DeviceManagementManagedDevices.Read.All", "User.Read.Al
 try {
     # User input parameters
     $userEmail = Read-Host "Enter user email (e.g., beans@test.onmicrosoft.com)"
-    $groupName = Read-Host "Enter the name for the new device group"
+    $groupID = Read-Host "Enter the object ID for existing device group"
     
-    if ([string]::IsNullOrWhiteSpace($groupName)) {
-        $groupName = "$userEmail - Intune Devices"
-        Write-Host "Using default group name: $groupName" -ForegroundColor Yellow
+    # Verify the group exists
+    Write-Host "Verifying group exists..." -ForegroundColor Yellow
+    try {
+        $existingGroup = Get-MgGroup -GroupId $groupID -ErrorAction Stop
+        Write-Host "Found group: $($existingGroup.DisplayName)" -ForegroundColor Green
+    } catch {
+        Write-Error "Group with ID $groupID not found or inaccessible"
+        exit 1
     }
     
     # Get the user object
@@ -32,9 +37,9 @@ try {
     
     Write-Host "Found user: $($user.DisplayName)" -ForegroundColor Green
     
-    # Get Intune MDM managed devices for the user
+    # Get Intune MDM managed devices for the user by email address
     Write-Host "Retrieving Intune MDM managed devices..." -ForegroundColor Yellow
-    $allDevices = Get-MgDeviceManagementManagedDevice -Filter "userId eq '$($user.Id)'"
+    $allDevices = Get-MgDeviceManagementManagedDevice -Filter "emailAddress eq '$userEmail'"
     
     # Filter for only Intune MDM enrolled devices
     $managedDevices = $allDevices | Where-Object { 
@@ -120,51 +125,44 @@ try {
     Write-Host "Devices successfully linked to Azure AD: $($linkedDevices.Count) of $($deviceInfo.Count)" -ForegroundColor Green
     
     if ($azureADDeviceIds.Count -eq 0) {
-        Write-Warning "No devices could be linked to Azure AD objects. Cannot create group."
+        Write-Warning "No devices could be linked to Azure AD objects. Cannot add to group."
         exit 1
     }
     
-    # Create the device group
-    Write-Host "`nCreating Entra ID device group: '$groupName'..." -ForegroundColor Yellow
+    # Add devices to the existing group
+    Write-Host "Adding devices to group: $($existingGroup.DisplayName)..." -ForegroundColor Yellow
+    $addedCount = 0
+    $skippedCount = 0
     
-    $groupParams = @{
-        DisplayName = $groupName
-        Description = "Device group for $userEmail - Created $(Get-Date -Format 'yyyy-MM-dd HH:mm')"
-        GroupTypes = @()
-        MailEnabled = $false
-        SecurityEnabled = $true
-        MailNickname = ($groupName -replace '[^a-zA-Z0-9]', '').ToLower()
-    }
+    # Get current group members to avoid duplicates
+    $currentMembers = Get-MgGroupMember -GroupId $groupID | Select-Object -ExpandProperty Id
     
-    try {
-        $newGroup = New-MgGroup @groupParams
-        Write-Host "✓ Group created successfully with ID: $($newGroup.Id)" -ForegroundColor Green
-        
-        # Add devices to the group
-        Write-Host "Adding devices to the group..." -ForegroundColor Yellow
-        $addedCount = 0
-        
-        foreach ($deviceId in $azureADDeviceIds) {
-            try {
-                $memberParams = @{
-                    "@odata.id" = "https://graph.microsoft.com/v1.0/directoryObjects/$deviceId"
-                }
-                New-MgGroupMember -GroupId $newGroup.Id -BodyParameter $memberParams
-                $addedCount++
-                Write-Host "  ✓ Added device (Object ID: $deviceId)" -ForegroundColor Green
-            } catch {
-                Write-Warning "Failed to add device $deviceId to group: $($_.Exception.Message)"
+    foreach ($deviceId in $azureADDeviceIds) {
+        try {
+            # Check if device is already a member
+            if ($currentMembers -contains $deviceId) {
+                Write-Host "  ○ Device already in group (Object ID: $deviceId)" -ForegroundColor Yellow
+                $skippedCount++
+                continue
             }
+            
+            $memberParams = @{
+                "@odata.id" = "https://graph.microsoft.com/v1.0/directoryObjects/$deviceId"
+            }
+            New-MgGroupMember -GroupId $groupID -BodyParameter $memberParams
+            $addedCount++
+            Write-Host "  ✓ Added device (Object ID: $deviceId)" -ForegroundColor Green
+        } catch {
+            Write-Warning "Failed to add device $deviceId to group: $($_.Exception.Message)"
         }
-        
-        Write-Host "SUCCESS!" -ForegroundColor Green
-        Write-Host "Group Name: $($newGroup.DisplayName)" -ForegroundColor White
-        Write-Host "Group ID: $($newGroup.Id)" -ForegroundColor White
-        Write-Host "Devices Added: $addedCount of $($azureADDeviceIds.Count)" -ForegroundColor White
-        
-    } catch {
-        Write-Error "Failed to create group: $($_.Exception.Message)"
     }
+    
+    Write-Host "`nSUCCESS!" -ForegroundColor Green
+    Write-Host "Group Name: $($existingGroup.DisplayName)" -ForegroundColor White
+    Write-Host "Group ID: $($existingGroup.Id)" -ForegroundColor White
+    Write-Host "Devices Added: $addedCount" -ForegroundColor White
+    Write-Host "Devices Skipped (already members): $skippedCount" -ForegroundColor White
+    Write-Host "Total Devices Found: $($azureADDeviceIds.Count)" -ForegroundColor White
     
     # Export device information to CSV
     $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
