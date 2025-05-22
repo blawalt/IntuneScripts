@@ -13,7 +13,7 @@ Connect-MgGraph -Scopes "DeviceManagementManagedDevices.Read.All", "User.Read.Al
 
 try {
     # User input parameters
-    $userEmail = Read-Host "Enter user email (e.g., beau.lawalt@cnu.edu)"
+    $userEmail = Read-Host "Enter user email (e.g., beans@test.onmicrosoft.com)"
     $groupName = Read-Host "Enter the name for the new device group"
     
     if ([string]::IsNullOrWhiteSpace($groupName)) {
