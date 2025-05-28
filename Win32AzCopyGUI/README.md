@@ -4,5 +4,5 @@
 
 ```powershell
 Install-Module IntuneWin32App
-Install-Module Microsoft.Graph.Intune
 ```
+MS Graph Intune Module
