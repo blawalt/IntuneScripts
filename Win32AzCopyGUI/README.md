@@ -1,4 +1,4 @@
-#Prerequisites
+# Prerequisites
 
 ## IntuneWin32App & Intune Graph Modules
 
