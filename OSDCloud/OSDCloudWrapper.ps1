@@ -48,7 +48,7 @@ $Global:MyOSDCloud | Format-Table | Out-Host
 # This command initiates the deployment. It uses the OS parameters defined above and automatically
 # incorporates the settings from the $Global:MyOSDCloud variable.
 Write-Host "Starting OSDCloud..." -ForegroundColor Green
-Start-OSDCloud -OSVersion $OSVersion -OSBuild $OSBuild -OSEdition $OSEdition -OSLanguage $OSLanguage -OSActivation $OSActivation
+Start-OSDCloud -OSName $OSName -OSEdition $OSEdition -OSActivation $OSActivation -OSLanguage $OSLanguage
 
 # Since 'Restart = [bool]$true' is set, the main OSDCloud function will handle the reboot into the new OS.
 # No further commands are needed here.
