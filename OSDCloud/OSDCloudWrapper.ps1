@@ -16,10 +16,10 @@ Write-Host "Executing [$($ScriptName)] Version [$($ScriptVersion)]" -ForegroundC
 # 1. Define Operating System Parameters
 # These variables define the target OS and are passed to the Start-OSDCloud function.
 $OSVersion = 'Windows 11'
-$OSBuild = '23H2'
+$OSReleaseID = '23H2'
+$OSName = 'Windows 11 23H2 x64'
 $OSEdition = 'Enterprise'
 $OSLanguage = 'en-us'
-# This activation type corresponds to the OEMActivation = $true setting below.
 $OSActivation = 'Volume' 
 
 # 2. Configure OSDCloud Global Variables
@@ -30,17 +30,14 @@ $Global:MyOSDCloud = [ordered]@{
     Restart                 = [bool]$true      # Automatically restart after the WinPE phase is complete.
     ZTI                     = [bool]$true      # Enables Zero Touch Installation, suppressing most user prompts.
     ClearDiskConfirm        = [bool]$false     # Suppresses the confirmation prompt before wiping the disk.
-    OSImageIndex            = 6                # Set to 6 for 'Enterprise' edition in standard Microsoft media.
     OEMActivation           = [bool]$true      # Attempts to activate Windows using the firmware-embedded product key.
     WindowsUpdate           = [bool]$true      # Runs Windows Updates during the SetupComplete phase.
     WindowsUpdateDrivers    = [bool]$true      # Includes driver updates when running Windows Update.
     WindowsDefenderUpdate   = [bool]$true      # Updates Windows Defender definitions during SetupComplete.
-    SyncMSUpCatDriverUSB    = [bool]$true      # Caches downloaded Microsoft Update Catalog drivers to the USB drive.
     MSCatalogScsiDrivers    = [bool]$true      # Ensures SCSI/storage drivers are downloaded from the MS Update Catalog.
     SkipAutopilot           = [bool]$true      # Skips searching for and applying Autopilot configurations.
     SkipODT                 = [bool]$true      # Skips the Office Deployment Tool (ODT) installation.
     SkipOOBEDeploy          = [bool]$true      # Skips applying a custom OOBEDeploy.json configuration.
-    updateFirmware          = [bool]$true      # Forces a firmware update
 }
 
 # Display the configured variables for final confirmation before starting.
