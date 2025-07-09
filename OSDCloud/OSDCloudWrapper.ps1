@@ -20,7 +20,7 @@ $OSBuild = '23H2'
 $OSEdition = 'Enterprise'
 $OSLanguage = 'en-us'
 # This activation type corresponds to the OEMActivation = $true setting below.
-$OSActivation = 'OEM' 
+$OSActivation = 'Volume' 
 
 # 2. Configure OSDCloud Global Variables
 # This hashtable overrides the default OSDCloud settings.
