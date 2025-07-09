@@ -34,7 +34,6 @@ $Global:MyOSDCloud = [ordered]@{
     WindowsUpdate           = [bool]$true      # Runs Windows Updates during the SetupComplete phase.
     WindowsUpdateDrivers    = [bool]$true      # Includes driver updates when running Windows Update.
     WindowsDefenderUpdate   = [bool]$true      # Updates Windows Defender definitions during SetupComplete.
-    MSCatalogScsiDrivers    = [bool]$true      # Ensures SCSI/storage drivers are downloaded from the MS Update Catalog.
     SkipAutopilot           = [bool]$true      # Skips searching for and applying Autopilot configurations.
     SkipODT                 = [bool]$true      # Skips the Office Deployment Tool (ODT) installation.
     SkipOOBEDeploy          = [bool]$true      # Skips applying a custom OOBEDeploy.json configuration.
