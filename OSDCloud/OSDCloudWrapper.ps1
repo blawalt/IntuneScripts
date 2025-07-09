@@ -4,7 +4,6 @@ $ScriptVersion = '2025.07.09'
 
 
 Write-Host "Executing [$($ScriptName)] Version [$($ScriptVersion)]" -ForegroundColor Green
-Write-Host "Transcript logging started. Output is being saved to: $LogFile" -ForegroundColor Cyan
 
 # 1. Define Operating System Parameters
 # These variables define the target OS and are passed to the Start-OSDCloud function.
