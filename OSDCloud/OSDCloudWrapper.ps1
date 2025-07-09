@@ -4,7 +4,7 @@ $ScriptVersion = '2025.07.09'
 # ===================================================================================
 # --- START TRANSCRIPT ---
 # 1. Define a persistent path for the log file (UNC network share is best).
-$LogPath = "X:\"
+$LogPath = $PSScriptRoot
 
 # 2. Create the directory if it doesn't exist.
 # You may need to handle permissions for this folder beforehand.
