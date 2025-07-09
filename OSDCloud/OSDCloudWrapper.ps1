@@ -40,6 +40,7 @@ $Global:MyOSDCloud = [ordered]@{
     SkipAutopilot           = [bool]$true      # Skips searching for and applying Autopilot configurations.
     SkipODT                 = [bool]$true      # Skips the Office Deployment Tool (ODT) installation.
     SkipOOBEDeploy          = [bool]$true      # Skips applying a custom OOBEDeploy.json configuration.
+    updateFirmware          = [bool]$true      # Forces a firmware update
 }
 
 # Display the configured variables for final confirmation before starting.
