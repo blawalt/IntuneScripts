@@ -38,15 +38,7 @@ Write-Host "Configuring OSDCloud deployment variables for a ZTI deployment..."
 $Global:MyOSDCloud = [ordered]@{
     # --- Your Requested Settings ---
     Restart               = [bool]$true     # Automatically restart after the WinPE phase is complete.
-    ZTI                   = [bool]$true     # Enables Zero Touch Installation, suppressing most user prompts.
-    ClearDiskConfirm      = [bool]$false    # Suppresses the confirmation prompt before wiping the disk.
-    OEMActivation         = [bool]$true     # Attempts to activate Windows using the firmware-embedded product key.
-    WindowsUpdate         = [bool]$true     # Runs Windows Updates during the SetupComplete phase.
-    WindowsUpdateDrivers  = [bool]$true     # Includes driver updates when running Windows Update.
-    WindowsDefenderUpdate = [bool]$true     # Updates Windows Defender definitions during SetupComplete.
-    SkipAutopilot         = [bool]$true     # Skips searching for and applying Autopilot configurations.
-    SkipODT               = [bool]$true     # Skips the Office Deployment Tool (ODT) installation.
-    SkipOOBEDeploy        = [bool]$true     # Skips applying a custom OOBEDeploy.json configuration.
+    OEMActivation         = [bool]$true
 }
 
 # Display the configured variables for final confirmation before starting.
