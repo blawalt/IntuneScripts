@@ -24,7 +24,6 @@ $Global:MyOSDCloud = [ordered]@{
     ClearDiskConfirm      = [bool]$false    # Suppresses the confirmation prompt before wiping the disk.
     OEMActivation         = [bool]$true     # Attempts to activate Windows using the firmware-embedded product key.
     WindowsUpdate         = [bool]$true     # Runs Windows Updates during the SetupComplete phase.
-    WindowsUpdateDrivers  = [bool]$true     # Includes driver updates when running Windows Update.
     WindowsDefenderUpdate = [bool]$true     # Updates Windows Defender definitions during SetupComplete.
     SkipODT               = [bool]$true     # Skips the Office Deployment Tool (ODT) installation.
     SkipOOBEDeploy        = [bool]$true     # Skips applying a custom OOBEDeploy.json configuration.
