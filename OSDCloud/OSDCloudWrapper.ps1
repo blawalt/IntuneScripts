@@ -6,11 +6,11 @@ $OSLanguage = 'en-us'
 
 #Set OSDCloud Vars
 $Global:MyOSDCloud = [ordered]@{
-    Restart = [bool]$False
+    Restart = [bool]$True
+    ZTI = [bool]$True
     OEMActivation = [bool]$True
     SetTimeZone = [bool]$true
     ClearDiskConfirm = [bool]$False
-    ShutdownSetupComplete = [bool]$false
 }
 
 #Launch OSDCloud
