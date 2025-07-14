@@ -23,10 +23,6 @@ $Global:MyOSDCloud = [ordered]@{
     ZTI                   = [bool]$true     # Enables Zero Touch Installation, suppressing most user prompts.
     ClearDiskConfirm      = [bool]$false    # Suppresses the confirmation prompt before wiping the disk.
     OEMActivation         = [bool]$true     # Attempts to activate Windows using the firmware-embedded product key.
-    WindowsUpdate         = [bool]$true     # Runs Windows Updates during the SetupComplete phase.
-    WindowsDefenderUpdate = [bool]$true     # Updates Windows Defender definitions during SetupComplete.
-    SkipODT               = [bool]$true     # Skips the Office Deployment Tool (ODT) installation.
-    SkipOOBEDeploy        = [bool]$true     # Skips applying a custom OOBEDeploy.json configuration.
 }
 
 # Display the configured variables for final confirmation before starting.
@@ -37,7 +33,7 @@ $Global:MyOSDCloud | Format-Table | Out-Host
 # This command initiates the deployment. It uses the OS parameters defined above and automatically
 # incorporates the settings from the $Global:MyOSDCloud variable.
 Write-Host "Starting OSDCloud..." -ForegroundColor Green
-Start-OSDCloud -OSName $OSName -OSEdition $OSEdition -OSActivation $OSActivation -OSLanguage $OSLanguage
+Start-OSDCloud -OSName $OSName -OSEdition $OSEdition -OSLicense $OSActivation -OSLanguage $OSLanguage -CloudDriver Dell
 
 # Since 'Restart = [bool]$true' is set, the main OSDCloud function will handle the reboot into the new OS.
 # No further commands are needed here.
