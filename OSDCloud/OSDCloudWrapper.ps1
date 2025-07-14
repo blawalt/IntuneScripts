@@ -1,39 +1,23 @@
-# Script Information
-$ScriptName = 'Invoke-OSDCloud-ZTI'
-$ScriptVersion = '2025.07.09'
-
-
-Write-Host "Executing [$($ScriptName)] Version [$($ScriptVersion)]" -ForegroundColor Green
-
-# 1. Define Operating System Parameters
-# These variables define the target OS and are passed to the Start-OSDCloud function.
-$OSVersion = 'Windows 11'
-$OSReleaseID = '23H2'
+#Variables to define the Windows OS / Edition etc to be applied during OSDCloud
 $OSName = 'Windows 11 23H2 x64'
 $OSEdition = 'Enterprise'
+$OSActivation = 'Retail'
 $OSLanguage = 'en-us'
-$OSActivation = 'Volume'
 
-# 2. Configure OSDCloud Global Variables
-# This hashtable overrides the default OSDCloud settings.
-Write-Host "Configuring OSDCloud deployment variables for a ZTI deployment..."
+#Set OSDCloud Vars
 $Global:MyOSDCloud = [ordered]@{
-    # --- Your Requested Settings ---
-    Restart               = [bool]$true     # Automatically restart after the WinPE phase is complete.
-    ZTI                   = [bool]$true     # Enables Zero Touch Installation, suppressing most user prompts.
-    ClearDiskConfirm      = [bool]$false    # Suppresses the confirmation prompt before wiping the disk.
+    Restart = [bool]$False
+    OEMActivation = [bool]$True
+    WindowsUpdate = [bool]$true
+    WindowsUpdateDrivers = [bool]$true
+    WindowsDefenderUpdate = [bool]$true
+    SetTimeZone = [bool]$true
+    ClearDiskConfirm = [bool]$False
+    ShutdownSetupComplete = [bool]$false
 }
 
-# Display the configured variables for final confirmation before starting.
-Write-Host "OSDCloud will launch with the following settings:" -ForegroundColor Cyan
-$Global:MyOSDCloud | Format-Table | Out-Host
+#Launch OSDCloud
+Write-Host "Starting OSDCloud" -ForegroundColor Green
+write-host "Start-OSDCloud -OSName $OSName -OSEdition $OSEdition -OSActivation $OSActivation -OSLanguage $OSLanguage"
 
-# 3. Launch OSDCloud
-# This command initiates the deployment. It uses the OS parameters defined above and automatically
-# incorporates the settings from the $Global:MyOSDCloud variable.
-Write-Host "Starting OSDCloud..." -ForegroundColor Green
-Start-OSDCloud -OSVersion 'Windows 11' -OSBuild 23H2 -OSEdition Enterprise -OSLanguage en-us -OSLicense Volume -ZTI -Restart" 
-
-# Since 'Restart = [bool]$true' is set, the main OSDCloud function will handle the reboot into the new OS.
-# No further commands are needed here.
-Write-Host "OSDCloud process has been initiated. The system will restart automatically upon completion." -ForegroundColor Green
+Start-OSDCloud -OSName $OSName -OSEdition $OSEdition -OSActivation $OSActivation -OSLanguage $OSLanguage
