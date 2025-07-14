@@ -22,7 +22,6 @@ $Global:MyOSDCloud = [ordered]@{
     Restart               = [bool]$true     # Automatically restart after the WinPE phase is complete.
     ZTI                   = [bool]$true     # Enables Zero Touch Installation, suppressing most user prompts.
     ClearDiskConfirm      = [bool]$false    # Suppresses the confirmation prompt before wiping the disk.
-    OEMActivation         = [bool]$true     # Attempts to activate Windows using the firmware-embedded product key.
 }
 
 # Display the configured variables for final confirmation before starting.
