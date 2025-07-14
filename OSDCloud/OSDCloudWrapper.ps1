@@ -32,7 +32,7 @@ $Global:MyOSDCloud | Format-Table | Out-Host
 # This command initiates the deployment. It uses the OS parameters defined above and automatically
 # incorporates the settings from the $Global:MyOSDCloud variable.
 Write-Host "Starting OSDCloud..." -ForegroundColor Green
-Start-OSDCloud -OSVersion $OSVersion -OSBuild $OSReleaseID -OSEdition $OSEdition -OSActivation $OSActivation -OSLanguage $OSLanguage -CloudDriver Dell
+Start-OSDCloud -OSVersion 'Windows 11' -OSBuild 23H2 -OSEdition Enterprise -OSLanguage en-us -OSLicense Volume -ZTI -Restart" 
 
 # Since 'Restart = [bool]$true' is set, the main OSDCloud function will handle the reboot into the new OS.
 # No further commands are needed here.
