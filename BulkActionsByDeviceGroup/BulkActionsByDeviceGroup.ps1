@@ -1,314 +1,175 @@
-# Bulk Retire Intune Devices by Entra Group Membership - Batched Version
-# This script gets all devices from an Entra/Azure AD group and performs bulk retire action in batches
+# Bulk Device Action Script by Entra Group Membership
+# Actions: Retire, Wipe, Delete, Sync, Restart, FreshStart, RunRemediation
 
 param(
     [Parameter(Mandatory=$true)]
     [string]$GroupName,
     
     [Parameter(Mandatory=$false)]
-    [ValidateSet("Retire", "Wipe", "Delete", "Sync", "Restart", "FreshStart")]
+    [ValidateSet("Retire", "Wipe", "Delete", "Sync", "Restart", "FreshStart", "RunRemediation")]
     [string]$Action = "Restart",
+
+    [Parameter(Mandatory=$false)]
+    [string]$RemediationName,
     
     [Parameter(Mandatory=$false)]
-    [int]$BatchSize = 500,
+    [int]$BatchSize = 100,
     
     [Parameter(Mandatory=$false)]
     [switch]$WhatIf
 )
 
-# Import required modules
-Import-Module Microsoft.Graph.Groups
-Import-Module Microsoft.Graph.DeviceManagement
-
-# Function to process devices in batches
-function Invoke-BatchedDeviceAction {
+# --- Main Action Function ---
+# Handles both batched and per-device actions.
+function Invoke-DeviceAction {
     param(
         [array]$Devices,
         [string]$Action,
         [int]$BatchSize,
+        [string]$RemediationScriptId,
         [bool]$WhatIfMode = $false
     )
     
     $TotalDevices = $Devices.Count
-    $TotalBatches = [Math]::Ceiling($TotalDevices / $BatchSize)
     $OverallSuccessCount = 0
-    
-    Write-Host "`nProcessing $TotalDevices devices in $TotalBatches batch(es) of up to $BatchSize devices each..." -ForegroundColor Cyan
-    
+
+    # --- Per-Device Action for Proactive Remediation ---
+    if ($Action -eq "RunRemediation") {
+        Write-Host "`nProcessing $TotalDevices devices individually for '$Action'..." -ForegroundColor Cyan
+        if ($WhatIfMode) {
+            Write-Host "[WHATIF] Would run remediation '$($using:RemediationName)' on $TotalDevices devices." -ForegroundColor Magenta
+            $Devices | ForEach-Object { Write-Host "  - $($_.DeviceName)" -ForegroundColor Gray }
+            return $TotalDevices
+        }
+        foreach ($Device in $Devices) {
+            Write-Host "Attempting to trigger remediation for: $($Device.DeviceName)" -ForegroundColor Cyan
+            $Uri = "https://graph.microsoft.com/beta/deviceManagement/managedDevices('$($Device.Id)')/initiateOnDemandProactiveRemediation"
+            $Body = @{ scriptPolicyId = $RemediationScriptId } | ConvertTo-Json
+            try {
+                Invoke-MgGraphRequest -Method POST -Uri $Uri -Body $Body -ContentType "application/json"
+                Write-Host "  ✅ Success!" -ForegroundColor Green
+                $OverallSuccessCount++
+            } catch {
+                Write-Warning "  ❌ Failed for device '$($Device.DeviceName)'. Error: $($_.Exception.Message)"
+            }
+            Start-Sleep -Seconds 1
+        }
+        return $OverallSuccessCount
+    }
+
+    # --- Batch Processing Logic for all other actions ---
+    $TotalBatches = [Math]::Ceiling($TotalDevices / $BatchSize)
+    Write-Host "`nProcessing $TotalDevices devices in $TotalBatches batch(es) for action '$Action'..." -ForegroundColor Cyan
     for ($BatchNumber = 1; $BatchNumber -le $TotalBatches; $BatchNumber++) {
         $StartIndex = ($BatchNumber - 1) * $BatchSize
         $EndIndex = [Math]::Min($StartIndex + $BatchSize - 1, $TotalDevices - 1)
         $CurrentBatch = $Devices[$StartIndex..$EndIndex]
-        
-        Write-Host "`n--- Processing Batch $BatchNumber of $TotalBatches (Devices $($StartIndex + 1) to $($EndIndex + 1)) ---" -ForegroundColor Yellow
-        
+        Write-Host "`n--- Processing Batch $BatchNumber of $TotalBatches ---" -ForegroundColor Yellow
         if ($WhatIfMode) {
-            Write-Host "[WHATIF] Would perform '$Action' on $($CurrentBatch.Count) devices in this batch:" -ForegroundColor Magenta
-            $CurrentBatch | ForEach-Object {
-                Write-Host "  - $($_.DeviceName) ($($_.OperatingSystem)) - User: $($_.UserDisplayName)" -ForegroundColor Gray
-            }
+            Write-Host "[WHATIF] Would perform '$Action' on $($CurrentBatch.Count) devices." -ForegroundColor Magenta
+            $CurrentBatch | ForEach-Object { Write-Host "  - $($_.DeviceName)" -ForegroundColor Gray }
             $OverallSuccessCount += $CurrentBatch.Count
             continue
         }
-        
-        # Display devices in current batch
-        Write-Host "Devices in this batch:" -ForegroundColor White
-        $CurrentBatch | ForEach-Object {
-            Write-Host "  - $($_.DeviceName) ($($_.OperatingSystem)) - User: $($_.UserDisplayName)" -ForegroundColor Gray
-        }
-        
-        # Prepare batch payload
-        $DeviceIds = $CurrentBatch | ForEach-Object { $_.Id }
+        $DeviceIds = $CurrentBatch.Id
         $Uri = "https://graph.microsoft.com/beta/deviceManagement/managedDevices/executeAction"
-        
-        # Define action parameters based on action type
         switch ($Action) {
-            "Retire" {
-                $JsonPayload = @{
-                    action = "retire"
-                    keepEnrollmentData = $false
-                    keepUserData = $true
-                    platform = "all"
-                    deviceIds = $DeviceIds
-                    realAction = "retire"
-                    actionName = "retire"
-                }
-            }
-            "Wipe" {
-                $JsonPayload = @{
-                    action = "wipe"
-                    keepEnrollmentData = $false
-                    keepUserData = $false
-                    platform = "all"
-                    deviceIds = $DeviceIds
-                    realAction = "wipe"
-                    actionName = "wipe"
-                }
-            }
-            "Delete" {
-                $JsonPayload = @{
-                    action = "delete"
-                    platform = "all"
-                    deviceIds = $DeviceIds
-                    realAction = "delete"
-                    actionName = "delete"
-                }
-            }
-            "Sync" {
-                $JsonPayload = @{
-                    action = "syncDevice"
-                    platform = "all"
-                    deviceIds = $DeviceIds
-                    realAction = "syncDevice"
-                    actionName = "syncDevice"
-                }
-            }
-            "Restart" {
-                $JsonPayload = @{
-                    action = "rebootNow"
-                    platform = "all"
-                    deviceIds = $DeviceIds
-                    realAction = "rebootNow"
-                    actionName = "rebootNow"
-                }
-            }
-            "FreshStart" {
-                $JsonPayload = @{
-                    action = "freshStart"
-                    keepEnrollmentData = $true
-                    keepUserData = $false
-                    platform = "all"
-                    deviceIds = $DeviceIds
-                    realAction = "freshStart"
-                    actionName = "freshStart"
-                }
-            }
+            "Retire"     { $Payload = @{ action = "retire"; keepUserData = $true } }
+            "Wipe"       { $Payload = @{ action = "wipe"; keepUserData = $false } }
+            "Delete"     { $Payload = @{ action = "delete" } }
+            "Sync"       { $Payload = @{ action = "syncDevice" } }
+            "Restart"    { $Payload = @{ action = "rebootNow" } }
+            "FreshStart" { $Payload = @{ action = "cleanWindowsDevice"; keepUserData = $false } }
         }
-        
-        # Execute batch action with retry logic
-        $BatchSuccessCount = 0
-        $MaxRetries = 3
-        $RetryCount = 0
-        $BatchSucceeded = $false
-        
-        do {
-            try {
-                Write-Host "Executing batch $Action action (attempt $($RetryCount + 1)/$($MaxRetries + 1))..." -ForegroundColor Yellow
-                
-                $Json = $JsonPayload | ConvertTo-Json -Depth 10
-                Invoke-MgGraphRequest -Uri $Uri -Body $Json -Method POST -ContentType "Application/Json"
-                
-                Write-Host "✅ Batch ${BatchNumber}: $Action action successfully initiated for $($CurrentBatch.Count) devices!" -ForegroundColor Green
-                $BatchSuccessCount = $CurrentBatch.Count
-                $BatchSucceeded = $true
-                break
-            }
-            catch {
-                $RetryCount++
-                Write-Warning "❌ Batch $BatchNumber failed (attempt $RetryCount): $($_.Exception.Message)"
-                
-                if ($RetryCount -le $MaxRetries) {
-                    $WaitTime = $RetryCount * 5
-                    Write-Host "Waiting $WaitTime seconds before retry..." -ForegroundColor Yellow
-                    Start-Sleep -Seconds $WaitTime
-                } else {
-                    Write-Error "Batch $BatchNumber failed after $($MaxRetries + 1) attempts. Falling back to individual device actions..."
-                    
-                    # Fallback to individual device actions for this batch
-                    foreach ($Device in $CurrentBatch) {
-                        try {
-                            switch ($Action) {
-                                "Retire" { 
-                                    Invoke-MgGraphRequest -Uri "https://graph.microsoft.com/beta/deviceManagement/managedDevices/$($Device.Id)/retire" -Method POST
-                                }
-                                "Sync" { 
-                                    Sync-MgDeviceManagementManagedDevice -ManagedDeviceId $Device.Id 
-                                }
-                                "Restart" { 
-                                    Invoke-MgGraphRequest -Uri "https://graph.microsoft.com/beta/deviceManagement/managedDevices/$($Device.Id)/rebootNow" -Method POST
-                                }
-                                "Wipe" {
-                                    $WipeBody = @{ keepEnrollmentData = $false; keepUserData = $false } | ConvertTo-Json
-                                    Invoke-MgGraphRequest -Uri "https://graph.microsoft.com/beta/deviceManagement/managedDevices/$($Device.Id)/wipe" -Method POST -Body $WipeBody -ContentType "Application/Json"
-                                }
-                                "Delete" {
-                                    Invoke-MgGraphRequest -Uri "https://graph.microsoft.com/beta/deviceManagement/managedDevices/$($Device.Id)" -Method DELETE
-                                }
-                                "FreshStart" {
-                                    $FreshStartBody = @{ keepUserData = $false } | ConvertTo-Json
-                                    Invoke-MgGraphRequest -Uri "https://graph.microsoft.com/beta/deviceManagement/managedDevices/$($Device.Id)/cleanWindowsDevice" -Method POST -Body $FreshStartBody -ContentType "Application/Json"
-                                }
-                            }
-                            Write-Host "  ✅ Individual $Action completed for: $($Device.DeviceName)" -ForegroundColor Green
-                            $BatchSuccessCount++
-                        }
-                        catch {
-                            Write-Warning "  ❌ Failed individual $Action for device: $($Device.DeviceName) - $($_.Exception.Message)"
-                        }
-                    }
-                    break
-                }
-            }
-        } while ($RetryCount -le $MaxRetries -and -not $BatchSucceeded)
-        
-        $OverallSuccessCount += $BatchSuccessCount
-        
-        # Add a small delay between batches to be nice to the API
-        if ($BatchNumber -lt $TotalBatches) {
-            Write-Host "Waiting 2 seconds before next batch..." -ForegroundColor Gray
-            Start-Sleep -Seconds 2
+        $Payload.Add("deviceIds", $DeviceIds)
+        $JsonPayload = $Payload | ConvertTo-Json -Depth 10
+        try {
+            Invoke-MgGraphRequest -Uri $Uri -Body $JsonPayload -Method POST -ContentType "Application/Json"
+            Write-Host "✅ Batch ${BatchNumber}: '$Action' action initiated for $($CurrentBatch.Count) devices." -ForegroundColor Green
+            $OverallSuccessCount += $CurrentBatch.Count
+        } catch {
+            Write-Warning "❌ Batch $BatchNumber failed: $($_.Exception.Message)"
         }
+        if ($BatchNumber -lt $TotalBatches) { Start-Sleep -Seconds 2 }
     }
-    
     return $OverallSuccessCount
 }
 
-# Connect to Microsoft Graph with required permissions
+# --- SCRIPT START ---
 Write-Host "Connecting to Microsoft Graph..." -ForegroundColor Yellow
-Connect-MgGraph -Scopes @(
-    "Group.Read.All",
-    "DeviceManagementManagedDevices.ReadWrite.All", 
-    "DeviceManagementManagedDevices.PrivilegedOperations.All",
-    "Directory.Read.All"
-)
+Connect-MgGraph -Scopes "Group.Read.All", "DeviceManagementManagedDevices.ReadWrite.All", "DeviceManagementManagedDevices.PrivilegedOperations.All", "Directory.Read.All", "DeviceManagementConfiguration.Read.All"
 
 try {
-    # Get the group by name
-    Write-Host "Finding group: $GroupName" -ForegroundColor Yellow
-    $Group = Get-MgGroup -Filter "DisplayName eq '$GroupName'"
-    
-    if (-not $Group) {
-        Write-Error "Group '$GroupName' not found!"
-        return
-    }
-    
-    if ($Group.Count -gt 1) {
-        Write-Error "Multiple groups found with name '$GroupName'. Please use a more specific name."
-        return
-    }
-    
-    Write-Host "Found group: $($Group.DisplayName) (ID: $($Group.Id))" -ForegroundColor Green
-    
-    # Get all members of the group (devices only)
-    Write-Host "Getting group members..." -ForegroundColor Yellow
-    $GroupMembers = Get-MgGroupMember -GroupId $Group.Id -All
-    
-    # Filter for device objects only
-    $DeviceMembers = $GroupMembers | Where-Object { 
-        $_.AdditionalProperties.'@odata.type' -eq '#microsoft.graph.device' 
-    }
-    
-    if ($DeviceMembers.Count -eq 0) {
-        Write-Warning "No devices found in group '$GroupName'"
-        return
-    }
-    
-    Write-Host "Found $($DeviceMembers.Count) devices in the group" -ForegroundColor Green
-    
-    # Get corresponding Intune managed devices
-    Write-Host "Finding corresponding Intune managed devices..." -ForegroundColor Yellow
-    $IntuneDevices = @()
-    
-    foreach ($Device in $DeviceMembers) {
-        # Get device details from Entra
-        $DeviceDetails = Get-MgDevice -DeviceId $Device.Id
-        
-        # Find corresponding Intune device by Azure AD Device ID
-        $IntuneDevice = Get-MgDeviceManagementManagedDevice -Filter "azureADDeviceId eq '$($DeviceDetails.DeviceId)'"
-        
-        if ($IntuneDevice) {
-            $IntuneDevices += $IntuneDevice
-        } else {
-            Write-Warning "Device '$($DeviceDetails.DisplayName)' not found in Intune or not managed"
+    # --- Action-Specific Checks ---
+    $RemediationScriptId = $null
+    if ($Action -eq "RunRemediation") {
+        if (-not $RemediationName) {
+            throw "The '-RemediationName' parameter is required when Action is 'RunRemediation'."
         }
+        # Find the Remediation Script ID
+        Write-Host "Finding remediation script: '$RemediationName'..." -ForegroundColor Cyan
+        $escapedRemediationName = $RemediationName -replace "'", "''"
+        $remediationUri = "https://graph.microsoft.com/beta/deviceManagement/deviceHealthScripts?`$filter=displayName eq '$escapedRemediationName'"
+        $remediationResponse = Invoke-MgGraphRequest -Method GET -Uri $remediationUri
+        $RemediationScript = $remediationResponse.value
+        if (-not $RemediationScript) { throw "Remediation script '$RemediationName' not found!" }
+        $RemediationScriptId = $RemediationScript[0].Id
+        Write-Host "✅ Found remediation script with ID: $RemediationScriptId" -ForegroundColor Green
     }
+
+    # --- Find Group and Devices---
+    Write-Host "Finding group: $GroupName" -ForegroundColor Yellow
+    $escapedGroupName = $GroupName -replace "'", "''"
+    $groupUri = "https://graph.microsoft.com/v1.0/groups?`$filter=displayName eq '$escapedGroupName'"
+    $groupResponse = Invoke-MgGraphRequest -Method GET -Uri $groupUri
+    $Group = $groupResponse.value
+    if (-not $Group) { throw "Group '$GroupName' not found!" }
+    if ($Group.Count -gt 1) { throw "Multiple groups found with name '$GroupName'." }
+    $Group = $Group[0]
+
+    Write-Host "Getting group members..." -ForegroundColor Yellow
+    $DeviceMembers = [System.Collections.Generic.List[object]]::new()
+    $membersUri = "https://graph.microsoft.com/v1.0/groups/$($Group.Id)/members/microsoft.graph.device"
+    do {
+        $membersResponse = Invoke-MgGraphRequest -Method GET -Uri $membersUri
+        $DeviceMembers.AddRange($membersResponse.value)
+        $membersUri = $membersResponse.'@odata.nextLink'
+    } while ($null -ne $membersUri)
+    if ($DeviceMembers.Count -eq 0) { Write-Warning "No devices found in group '$GroupName'"; return }
     
-    if ($IntuneDevices.Count -eq 0) {
-        Write-Warning "No managed Intune devices found for group members"
-        return
+    Write-Host "Found $($DeviceMembers.Count) devices in group. Correlating to Intune via API calls..." -ForegroundColor Green
+    $IntuneDevices = @()
+    foreach ($Device in $DeviceMembers) {
+        $entraDeviceDetailsUri = "https://graph.microsoft.com/v1.0/devices/$($Device.Id)"
+        $DeviceDetails = Invoke-MgGraphRequest -Method GET -Uri $entraDeviceDetailsUri
+        if (-not $DeviceDetails.deviceId) { continue }
+        $intuneDeviceUri = "https://graph.microsoft.com/beta/deviceManagement/managedDevices?`$filter=azureADDeviceId eq '$($DeviceDetails.deviceId)'"
+        $intuneDeviceResponse = Invoke-MgGraphRequest -Method GET -Uri $intuneDeviceUri
+        if ($intuneDeviceResponse.value) { $IntuneDevices += $intuneDeviceResponse.value[0] }
     }
+    if ($IntuneDevices.Count -eq 0) { Write-Warning "No managed Intune devices found for group members"; return }
     
-    Write-Host "Found $($IntuneDevices.Count) Intune managed devices" -ForegroundColor Green
-    
-    # Calculate batch information
-    $TotalBatches = [Math]::Ceiling($IntuneDevices.Count / $BatchSize)
-    Write-Host "Will process devices in $TotalBatches batch(es) of up to $BatchSize devices each" -ForegroundColor Cyan
-    
-    # Display summary of devices that will be affected
+    Write-Host "Found $($IntuneDevices.Count) Intune managed devices." -ForegroundColor Green
     Write-Host "`nDevices that will be affected:" -ForegroundColor Cyan
-    $IntuneDevices | ForEach-Object {
-        Write-Host "  - $($_.DeviceName) ($($_.OperatingSystem)) - User: $($_.UserDisplayName)" -ForegroundColor White
+    $IntuneDevices | ForEach-Object { Write-Host "  - $($_.DeviceName) ($($_.OperatingSystem))" -ForegroundColor White }
+    
+    # --- Confirmation and Execution ---
+    if (-not $WhatIf) {
+        $Confirmation = Read-Host "`nAre you sure you want to perform '$Action' on these $($IntuneDevices.Count) devices? (y/N)"
+        if ($Confirmation.ToLower() -ne 'y') { Write-Host "Operation cancelled." -ForegroundColor Yellow; return }
     }
     
-    if ($WhatIf) {
-        Write-Host "`n[WHATIF MODE] - No actual changes will be made" -ForegroundColor Magenta
-        $SuccessCount = Invoke-BatchedDeviceAction -Devices $IntuneDevices -Action $Action -BatchSize $BatchSize -WhatIfMode $true
-        Write-Host "`n[WHATIF] Would perform '$Action' on $SuccessCount devices across $TotalBatches batch(es)" -ForegroundColor Magenta
-        return
-    }
+    Write-Host "`nStarting '$Action' operations..." -ForegroundColor Yellow
+    $SuccessCount = Invoke-DeviceAction -Devices $IntuneDevices -Action $Action -BatchSize $BatchSize -RemediationScriptId $RemediationScriptId -WhatIfMode $WhatIf
     
-    # Confirm action
-    $Confirmation = Read-Host "`nAre you sure you want to perform '$Action' on these $($IntuneDevices.Count) devices in $TotalBatches batch(es)? (y/N)"
-    if ($Confirmation -ne 'y' -and $Confirmation -ne 'Y') {
-        Write-Host "Operation cancelled" -ForegroundColor Yellow
-        return
-    }
-    
-    # Perform the batched actions
-    Write-Host "`nStarting batched $Action operations..." -ForegroundColor Yellow
-    $SuccessCount = Invoke-BatchedDeviceAction -Devices $IntuneDevices -Action $Action -BatchSize $BatchSize
-    
-    Write-Host "`n🎉 Batch processing completed!" -ForegroundColor Green
-    Write-Host "$Action action successfully initiated for $SuccessCount out of $($IntuneDevices.Count) devices" -ForegroundColor Cyan
-    Write-Host "Note: It may take some time for the actions to complete on all devices." -ForegroundColor Yellow
+    Write-Host "`n🎉 Processing completed!" -ForegroundColor Green
+    $ResultVerb = if ($WhatIf) { "would be" } else { "was" }
+    Write-Host "Action '$Action' $ResultVerb initiated for $SuccessCount out of $($IntuneDevices.Count) devices." -ForegroundColor Cyan
 }
 catch {
     Write-Error "Script execution failed: $($_.Exception.Message)"
 }
 finally {
-    # Disconnect from Graph
     Write-Host "`nDisconnecting from Microsoft Graph..." -ForegroundColor Yellow
     Disconnect-MgGraph
 }
-
-Write-Host "`nScript execution completed!" -ForegroundColor Green
