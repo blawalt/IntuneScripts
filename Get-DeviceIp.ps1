@@ -1,4 +1,9 @@
-﻿##Global Variables
+﻿##This script finds device IP given Serial
+##With DNS limitations on Entra-Joined Device, 
+##this can be used as a function to pull device IP for remote actions.
+
+
+##Global Variables
 $clientId = "<AppId>"
 $tenantId = "<TenantID>"
 
