@@ -46,4 +46,4 @@ function Get-DeviceIP{
 }
 }
 
-Get-DeviceIP -SerialNumber "484Y2W2"
+
