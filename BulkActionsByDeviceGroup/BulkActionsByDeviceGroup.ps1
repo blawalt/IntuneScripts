@@ -7,7 +7,7 @@ param(
     
     [Parameter(Mandatory=$false)]
     [ValidateSet("Retire", "Wipe", "Delete", "Sync", "Restart", "FreshStart", "RunRemediation")]
-    [string]$Action = "Restart",
+    [string]$Action = "Sync",
 
     [Parameter(Mandatory=$false)]
     [string]$RemediationName,
@@ -73,15 +73,51 @@ function Invoke-DeviceAction {
         }
         $DeviceIds = $CurrentBatch.Id
         $Uri = "https://graph.microsoft.com/beta/deviceManagement/managedDevices/executeAction"
+
+        # Define action parameters based on action type
         switch ($Action) {
-            "Retire"     { $Payload = @{ action = "retire"; keepUserData = $true } }
-            "Wipe"       { $Payload = @{ action = "wipe"; keepUserData = $false } }
-            "Delete"     { $Payload = @{ action = "delete" } }
-            "Sync"       { $Payload = @{ action = "syncDevice" } }
-            "Restart"    { $Payload = @{ action = "rebootNow" } }
-            "FreshStart" { $Payload = @{ action = "cleanWindowsDevice"; keepUserData = $false } }
+            "Retire" {
+                $Payload = @{
+                    actionName = "retire"
+                    keepUserData = $true
+                    deviceIds  = $DeviceIds
+                }
+            }
+            "Wipe" {
+                $Payload = @{
+                    actionName         = "wipe"
+                    keepEnrollmentData = $false
+                    keepUserData       = $false
+                    deviceIds          = $DeviceIds
+                }
+            }
+            "Delete" {
+                $Payload = @{
+                    actionName = "delete"
+                    deviceIds  = $DeviceIds
+                }
+            }
+            "Sync" {
+                $Payload = @{
+                    actionName = "syncDevice"
+                    deviceIds  = $DeviceIds
+                }
+            }
+            "Restart" {
+                $Payload = @{
+                    actionName = "rebootNow"
+                    deviceIds  = $DeviceIds
+                }
+            }
+            "FreshStart" {
+                $Payload = @{
+                    actionName   = "cleanWindowsDevice" # Correct actionName for Fresh Start
+                    keepUserData = $false
+                    deviceIds    = $DeviceIds
+                }
+            }
         }
-        $Payload.Add("deviceIds", $DeviceIds)
+
         $JsonPayload = $Payload | ConvertTo-Json -Depth 10
         try {
             Invoke-MgGraphRequest -Uri $Uri -Body $JsonPayload -Method POST -ContentType "Application/Json"
