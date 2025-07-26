@@ -7,7 +7,7 @@ param(
     
     [Parameter(Mandatory=$false)]
     [ValidateSet("Retire", "Wipe", "Delete", "Sync", "Restart", "FreshStart", "RunRemediation")]
-    [string]$Action = "Sync",
+    [string]$Action = "Restart",
 
     [Parameter(Mandatory=$false)]
     [string]$RemediationName,
@@ -16,7 +16,7 @@ param(
     [int]$BatchSize = 100,
     
     [Parameter(Mandatory=$false)]
-    [switch]$WhatIf
+    [switch]$WhatIf=$true
 )
 
 # --- Main Action Function ---
@@ -174,15 +174,19 @@ try {
     if ($DeviceMembers.Count -eq 0) { Write-Warning "No devices found in group '$GroupName'"; return }
     
     Write-Host "Found $($DeviceMembers.Count) devices in group. Correlating to Intune via API calls..." -ForegroundColor Green
-    $IntuneDevices = @()
-    foreach ($Device in $DeviceMembers) {
-        $entraDeviceDetailsUri = "https://graph.microsoft.com/v1.0/devices/$($Device.Id)"
-        $DeviceDetails = Invoke-MgGraphRequest -Method GET -Uri $entraDeviceDetailsUri
-        if (-not $DeviceDetails.deviceId) { continue }
-        $intuneDeviceUri = "https://graph.microsoft.com/beta/deviceManagement/managedDevices?`$filter=azureADDeviceId eq '$($DeviceDetails.deviceId)'"
-        $intuneDeviceResponse = Invoke-MgGraphRequest -Method GET -Uri $intuneDeviceUri
-        if ($intuneDeviceResponse.value) { $IntuneDevices += $intuneDeviceResponse.value[0] }
+    # 1. Extract the Azure AD Device IDs from the group members.
+    $azureAdDeviceIds = $DeviceMembers.DeviceId
+
+    # 2. Build the parameters for the batch request.
+    $batchParams = @{
+        Url             = "/deviceManagement/managedDevices?`$filter=azureADDeviceId eq '<placeholder>'"
+        Placeholder     = $azureAdDeviceIds
+        PlaceholderAsId = $true # This helps with tracking but is optional
     }
+
+    # 3. Create and execute the batch request.
+    $batchRequest = New-GraphBatchRequest @batchParams
+    $IntuneDevices = Invoke-GraphBatchRequest -batchRequest $batchRequest
     if ($IntuneDevices.Count -eq 0) { Write-Warning "No managed Intune devices found for group members"; return }
     
     Write-Host "Found $($IntuneDevices.Count) Intune managed devices." -ForegroundColor Green
