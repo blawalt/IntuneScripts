@@ -58,7 +58,7 @@
             $i = 0
             foreach ($Device in $Devices) {
                 $i++
-                $status = "Processing device $i of $TotalDevices: $($Device.DeviceName)"
+                $status = "Processing device $i of ${TotalDevices}: $($Device.DeviceName)"
                 $percentComplete = ($i / $TotalDevices) * 100
                 Write-Progress -Activity $activity -Status $status -PercentComplete $percentComplete
 
