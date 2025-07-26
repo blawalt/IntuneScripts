@@ -5,6 +5,16 @@
 .DESCRIPTION
     This function targets devices for an action based on either their membership in an Entra ID group
     or a list of device names provided in a CSV file. It displays a progress bar during execution.
+.PARAMETER GroupName
+    The display name of the Entra ID group containing the target devices.
+.PARAMETER CsvPath
+    The file path to a CSV file. The CSV must contain a header named 'DeviceName'.
+.PARAMETER Action
+    The action to perform on the devices. This parameter is mandatory.
+.PARAMETER RemediationName
+    Required only when the Action is 'RunRemediation'. Specifies the display name of the Proactive Remediation script.
+.PARAMETER BatchSize
+    The number of devices to process in each batch for bulk actions. Defaults to 100.
 .EXAMPLE
     # Wipe all devices in the "HR Laptops" group, will prompt for confirmation.
     Invoke-IntuneDeviceAction -GroupName "HR Laptops" -Action Wipe
@@ -21,7 +31,6 @@
         [Parameter(Mandatory=$true, ParameterSetName='Csv')]
         [string]$CsvPath,
         
-        # This parameter is now mandatory and has no default value.
         [Parameter(Mandatory=$true)]
         [ValidateSet("Retire", "Wipe", "Delete", "Sync", "Restart", "FreshStart", "RunRemediation")]
         [string]$Action,
@@ -49,7 +58,7 @@
             $i = 0
             foreach ($Device in $Devices) {
                 $i++
-                $status = "Processing device $i of ${TotalDevices}: $($Device.DeviceName)"
+                $status = "Processing device $i of $TotalDevices: $($Device.DeviceName)"
                 $percentComplete = ($i / $TotalDevices) * 100
                 Write-Progress -Activity $activity -Status $status -PercentComplete $percentComplete
 
@@ -99,8 +108,7 @@
     }
 
     # --- SCRIPT LOGIC START ---
-    Write-Verbose "Connecting to Microsoft Graph..."
-    Connect-MgGraph -Scopes "Group.Read.All", "DeviceManagementManagedDevices.ReadWrite.All", "DeviceManagementManagedDevices.PrivilegedOperations.All", "Directory.Read.All", "DeviceManagementConfiguration.Read.All" -NoWelcome
+    Connect-MgGraph -Scopes "Group.Read.All", "DeviceManagementManagedDevices.ReadWrite.All", "DeviceManagementManagedDevices.PrivilegedOperations.All", "Directory.Read.All", "DeviceManagementConfiguration.Read.All" -NoWelcome | Out-Null
 
     try {
         # --- Parameter Validation ---
@@ -177,7 +185,9 @@
         Write-Error "Script execution failed: $($_.Exception.Message)"
     }
     finally {
-        Write-Verbose "`nDisconnecting from Microsoft Graph..."
-        Disconnect-MgGraph
+        # Check if a graph connection exists before trying to disconnect
+        if (Get-MgContext -ErrorAction SilentlyContinue) {
+            Disconnect-MgGraph | Out-Null
+        }
     }
 }
