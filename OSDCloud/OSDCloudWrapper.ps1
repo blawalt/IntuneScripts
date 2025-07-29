@@ -9,6 +9,8 @@ $Global:MyOSDCloud = [ordered]@{
     Restart = [bool]$True
     ZTI = [bool]$True
     OEMActivation = [bool]$True
+    WindowsUpdate = [bool]$true
+    WindowsDefenderUpdate = [bool]$true
     SetTimeZone = [bool]$true
     ClearDiskConfirm = [bool]$False
 }
