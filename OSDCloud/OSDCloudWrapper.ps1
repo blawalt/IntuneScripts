@@ -13,6 +13,8 @@ $Global:MyOSDCloud = [ordered]@{
     WindowsDefenderUpdate = [bool]$true
     SetTimeZone = [bool]$true
     ClearDiskConfirm = [bool]$False
+    DriverPackName = "Dell Dell Pro Max 16 MC16250 Win11 A01"
+    Product = "0CF1"
 }
 
 #Launch OSDCloud
