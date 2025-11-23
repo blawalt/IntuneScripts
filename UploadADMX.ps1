@@ -1,7 +1,6 @@
 <##
 .SYNOPSIS
     Uploads an ADMX and its corresponding ADML file to Intune.
-    This version MIRRORS the browser's payload exactly (Minimalist).
 #>
 
 # --- CONFIGURATION ---
