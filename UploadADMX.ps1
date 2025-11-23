@@ -30,8 +30,7 @@ try {
     $AdmxFileName = Split-Path $AdmxPath -Leaf
     $AdmlFileName = Split-Path $AdmlPath -Leaf
 
-    # --- PAYLOAD CONSTRUCTION (Browser Mirror) ---
-    # We are removing @odata.type and displayName because the browser didn't send them.
+    # --- PAYLOAD 
     $Payload = @{
         content = $AdmxContent
         fileName = $AdmxFileName
