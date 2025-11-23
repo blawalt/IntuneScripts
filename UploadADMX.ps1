@@ -4,9 +4,8 @@
 #>
 
 # --- CONFIGURATION ---
-# RUN THIS TWICE: Once for Dell.admx (Base), Once for DellCommandUpdate.admx (Child)
-$AdmxPath = "/Users/beau.lawalt/Downloads/Templates/Dell.ADMX"       
-$AdmlPath = "/Users/beau.lawalt/Downloads/Templates/en-us/Dell.adml" 
+$AdmxPath = "/path/to/*.admx"       
+$AdmlPath = "/path/to/*.adml" 
 
 # --- SCRIPT ---
 
