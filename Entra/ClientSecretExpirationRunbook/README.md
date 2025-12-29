@@ -2,7 +2,7 @@
 
 When expiring secrets are detected (e.g., within 30 days), it sends an email alert to a specified administrator. This solution utilized the **Gmail API** to send all messages for those of us in a Gmail-only environment.
  
-## 🏗️ Architecture
+## Architecture
 
 * **Platform:** Azure Automation Account (PowerShell 7.2 Runbook)
 * **Authentication (Azure):** System-Assigned Managed Identity (Zero maintenance; no hardcoded client secrets).
@@ -13,7 +13,7 @@ When expiring secrets are detected (e.g., within 30 days), it sends an email ale
 
 ---
 
-## 🚀 Setup Guide
+## Setup Guide
 
 ### Phase 1: Google Cloud Setup
 *Goal: Create an OAuth "App" to allow the script to send emails as a specific Google user.*
@@ -116,7 +116,7 @@ Write-Host "Permission 'Application.Read.All' granted successfully."
 3.  **Code:** Import or paste the contents of [`ClientSecretExpirationRunbook.ps1`](https://github.com/blawalt/M365Scripts/blob/main/Entra/ClientSecretExpirationRunbook.ps1).
 4.  **Schedule:** Link the Runbook to a recurring schedule (e.g., Weekly).
 
-## ⚙️ How It Works
+## How It Works
 
 * **Azure Login:** The script executes `Connect-AzAccount -Identity`. It uses the System-Assigned Identity to authenticate to Azure without managing credentials.
 * **Scan:** It queries Microsoft Graph (`/applications`) using pagination to retrieve all App Registrations.
@@ -124,7 +124,7 @@ Write-Host "Permission 'Application.Read.All' granted successfully."
 * **Google Login:** It takes the stored `GoogleRefreshToken` and exchanges it for a temporary Access Token via `oauth2.googleapis.com/token`.
 * **Alert:** It constructs a MIME email message (HTML) and sends it using the Gmail API (`users/me/messages/send`).
 
-## 🛠 Troubleshooting
+## Troubleshooting
 
 * **"Invalid Grant" Error:** Your Google Refresh Token has expired or been revoked. Check that your Google Cloud App status is **"In Production"**. If it was "Testing", tokens die after 7 days.
 * **"Authorization_RequestDenied" Error:** The Azure Managed Identity lacks permission. Re-run the Phase 4 script to grant `Application.Read.All`.
