@@ -1,7 +1,5 @@
 # Azure App Registration Secret Monitor & Alerter
 
-This project implements an unmanned, serverless automation solution that monitors Azure App Registrations for expiring client secrets.
-
 When expiring secrets are detected (e.g., within 30 days), it sends an email alert to a specified administrator. This solution utilized the **Gmail API** to send all messages for those of us in a Gmail-only environment.
  
 ## 🏗️ Architecture
@@ -109,7 +107,7 @@ Write-Host "Permission 'Application.Read.All' granted successfully."
 
 1.  **Create a new Runbook** in Azure Automation.
 2.  **Runtime:** PowerShell 7.2 (Recommended) or 5.1.
-3.  **Code:** Import or paste the contents of `Runbook.ps1`.
+3.  **Code:** Import or paste the contents of [`ClientSecretExpirationRunbook.ps1`](https://github.com/blawalt/M365Scripts/blob/main/Entra/ClientSecretExpirationRunbook.ps1).
 4.  **Schedule:** Link the Runbook to a recurring schedule (e.g., Weekly).
 
 ## ⚙️ How It Works
