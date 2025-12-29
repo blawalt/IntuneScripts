@@ -24,8 +24,8 @@ catch {
 }
 
 # Notification Settings
-$SenderEmail    = "alerts@cnu.edu"      # Must match the Google account that created the token
-$RecipientEmail = "beau.lawalt@cnu.edu" 
+$SenderEmail    = "alerts@fabrikam.org"      # Must match the Google account that created the token
+$RecipientEmail = "recipient@fabrikam.org" 
 $DaysThreshold  = 30
 
 # ==============================================================================
