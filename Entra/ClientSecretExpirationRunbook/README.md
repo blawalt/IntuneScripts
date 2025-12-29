@@ -28,8 +28,12 @@ When expiring secrets are detected (e.g., within 30 days), it sends an email ale
         * **Audience:** Internal
         * **Contact information:** (Enter email to receive project alerts)
     * Click **Create**.
-    * **Data Access (Scopes):** On the next screen, select Data Access, then click **Add or Remove Scopes** and select `.../auth/gmail.send` (you may have to filter by the API:Gmail API) <img width="745" height="485" alt="image" src="https://github.com/user-attachments/assets/cd898eb0-275a-40d0-a0eb-74dd9a7d7e96" />
-.
+    * **Data Access (Scopes):**
+        * Click **Add or Remove Scopes**.
+        * In the filter box, type `Gmail API`.
+        * Check the box for `.../auth/gmail.send` and click **Update**.
+        
+        <img src="https://github.com/user-attachments/assets/cd898eb0-275a-40d0-a0eb-74dd9a7d7e96" width="700" alt="Gmail API Scope Selection">
 4.  **Create Credentials:**
     * Go to **Credentials > Create Credentials > OAuth client ID**.
     * **Application Type:** Desktop App.
