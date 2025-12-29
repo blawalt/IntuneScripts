@@ -19,15 +19,17 @@ When expiring secrets are detected (e.g., within 30 days), it sends an email ale
 *Goal: Create an OAuth "App" to allow the script to send emails as a specific Google user.*
 
 1.  **Create Project:** Go to the [Google Cloud Console](https://console.cloud.google.com/) and create a new project (e.g., `Azure-Auto-Mailer`).
-2.  **Enable API:** Navigate to **APIs & Services > Library**, search for **Gmail API**, and enable it.
+2.  **Enable API:** Navigate to **APIs & Services > Enable APIs and services**, search for **Gmail API**, and enable it.
 3.  **Configure OAuth Consent Screen (CRITICAL):**
-    * Go to **APIs & Services > OAuth consent screen**.
-    * **User Type:** External (unless you have a Google Workspace Organization allowing Internal).
-    * **App Name:** `AzureMonitor`.
-    * **Scopes:** Add `.../auth/gmail.send`.
-    * **Test Users:** Add the email address you plan to send from.
-    * **IMPORTANT:** Once created, click the button that says **PUBLISH APP** (or "Push to Production").
-    * *Warning:* If you leave the app in "Testing" mode, the refresh token will expire in 7 days.
+    * Go to **APIs & Services > OAuth consent screen** and click **Get Started**.
+    * **App Information:**
+        * **App Name:** `AzureMonitor`
+        * **User support email:** (Select an email you have access to)
+        * **Audience:** Internal
+        * **Contact information:** (Enter email to receive project alerts)
+    * Click **Create**.
+    * **Data Access (Scopes):** On the next screen, select Data Access, then click **Add or Remove Scopes** and select `.../auth/gmail.send` (you may have to filter by the API:Gmail API) <img width="745" height="485" alt="image" src="https://github.com/user-attachments/assets/cd898eb0-275a-40d0-a0eb-74dd9a7d7e96" />
+.
 4.  **Create Credentials:**
     * Go to **Credentials > Create Credentials > OAuth client ID**.
     * **Application Type:** Desktop App.
